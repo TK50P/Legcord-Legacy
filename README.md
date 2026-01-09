@@ -1,6 +1,13 @@
 
 ![Legcord](https://github.com/user-attachments/assets/f7b007d4-44fa-4c88-96e4-0a448b568b5d)
 
+> [!CAUTION]
+> Usage of unofficial or ported clients is not guaranteed to function as intended. Future updates may break certain features or cause unexpected behavior.
+>
+> **Don’t be stupid** — do **not** open issues or contact Legcord support. These clients are not supported or affiliated with **the official Legcord** in any way.
+>
+> **Use at your own risk.**
+
 # Features
 
 - **Standalone client**
@@ -34,125 +41,223 @@
 - **Cross-platform support!**
 
    Legcord was originally created for AArch64 Linux devices since Discord doesn't support them. We soon decided to support every platform that [Electron supports](https://github.com/electron/electron#platform-support)!
+
+- **_NT 6.x Support!!!_**
+
+   Legcord-Legacy is designed to run on Legacy Windows Systems like 32Bit Windows or Windows NT 6.x (Vista _with [Extended Kernel](https://win32subsystem.live/extended-kernel/)_ Windows 7 and 8, 8.1) Support.
+
+- **_macOS Catalina 10.15 Support!!!_**
+
+   Legcord-Legacy is designed to run on Legacy macOS, currently supports macOS Catalina (10.15).
+<img width="1920" height="1080" alt="Windows Vista-2025-11-22-12-12-01" src="https://github.com/user-attachments/assets/8c04c57f-fb05-4ed3-a0ef-1cb85a20795e" />
+<img width="1920" height="1080" alt="Windows_7_Main-2025-11-01-19-28-27" src="https://github.com/user-attachments/assets/c4cf9e07-55b4-4497-b7c2-5765b46b2933" />
   
 # How to run/install it?
 
-## Packaging status
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/legcord.svg)](https://repology.org/project/legcord/versions)
-
 ### Windows
-[Get the .exe installer](https://www.legcord.app/download)
+Get the .exe installer from Releases.
 
-[<img src="https://user-images.githubusercontent.com/49786146/159123313-3bdafdd3-5130-4b0d-9003-40618390943a.png" width="200" />](https://winstall.app/apps/smartfrigde.Legcord)
-
-```pwsh
-winget install --id=smartfrigde.Legcord  -e
-```
-
-[<img src="https://learn.microsoft.com/en-us/windows/apps/images/new-badge-light.png" width="200" />](https://apps.microsoft.com/detail/9pdkjpv0wxlg?ocid=webpdpshare)
-
-### Flatpak
-
-Not available yet.
-
-### Debian, Ubuntu and Raspbian
-
-#### Install via .deb from GitHub Releases
-
-You can install Legcord directly using the `.deb` packages published on the GitHub Releases page.
-
-1. Go to the Releases page: https://github.com/Legcord/Legcord/releases
-2. Download the `.deb` that matches your architecture:
-   - `amd64` (most Intel/AMD 64‑bit PCs)
-   - `arm64` (AArch64, e.g. Raspberry Pi 4/5 64‑bit, ARM laptops)
-3. Install the downloaded file (this resolves dependencies automatically):
-
-```sh
-sudo apt install ./<downloaded-file>.deb
-```
-
-Alternatively, you can copy the asset link from the release and install via terminal:
-
-```sh
-# Replace the URL below with the copied link to the .deb asset from the Releases page
-wget -O legcord.deb "https://github.com/Legcord/Legcord/releases/download/<tag>/<asset>.deb"
-sudo apt install legcord.deb
-```
-
-If your system reports missing dependencies, you can also use this fallback:
-
-```sh
-sudo dpkg -i <downloaded-file>.deb || sudo apt -f install
-```
-
-#### Alternative: pacstall
-
-legcord-deb is available on [pacstall](https://pacstall.dev/packages/legcord-deb)
-```sh
-sudo bash -c "$(wget -q https://pacstall.dev/q/install -O -)" # Install pacstall if not installed
-pacstall -I legcord-deb
-```
-
-### Snap package
-
-[![Get it from the Snap store](https://assets.ubuntu.com/v1/b16729d2-snap-store-black.svg)](https://snapcraft.io/legcord)
-
-### Scoop package
-
-Legcord is also available on the [Extras](https://github.com/ScoopInstaller/Extras) repo
-
-```powershell
-scoop bucket add extras # Ensure bucket is added first
-scoop install legcord
-```
-
-### AUR Package
-
-- [legcord-git](https://aur.archlinux.org/packages/legcord-git) Built locally against dev branch
-
-### Homebrew repository
-
-Legcord is also available on the [Homebrew Cask](https://github.com/Homebrew/homebrew-cask) repo
-
-```zsh
-brew install --cask legcord
-```
-### MacPorts
-
-Legcord is available [via MacPorts](https://ports.macports.org/port/Legcord/)
-
-```sh
-sudo port install legcord
-```
-
-### FreeBSD
-
-You can also get Legcord running on FreeBSD by following [these instructions](https://gist.github.com/axyiee/4d29c982ac85d5d26f98a51040b5de37).
-
-### Pi-Apps
-
-Legcord is also available in [Pi-Apps](https://github.com/Botspot/pi-apps).  
-[![badge](https://github.com/Botspot/pi-apps/blob/master/icons/badge.png?raw=true)](https://github.com/Botspot/pi-apps)
+### macOS
+Get the .dmg installer from Releases.
 
 ### Pre-built binaries
 
- Check the **[releases tab](https://github.com/Legcord/Legcord/releases)** for precompiled packages for Linux, Windows, and macOS.
+ Check the **[releases tab](https://github.com/TK50P/Legcord-Legacy/releases)** for precompiled packages for Windows, and macOS.
 
 ### Compiling
 
  Alternatively, you can run Legcord from source ([NodeJS](https://nodejs.dev) and [pnpm](https://pnpm.io/installation#using-npm)) are required:
 
- 1. Clone Legcord repo: `git clone https://github.com/Legcord/Legcord.git`
- 2. Run `pnpm install` to install dependencies
- 3. Build with `pnpm run build`
- 4. Compile/Package with `pnpm run package`
+### For Windows
+You need to have the following dependencies installed:
+
+You’ll also need the following this file:  
+- [Modified Electron](https://github.com/e3kskoy7wqk/Electron-for-windows-7) (Thanks to [@e3kskoy7wqk](https://github.com/e3kskoy7wqk))
+
+First, fork repository with `git clone https://github.com/Legcord/Legcord`
+
+Place the unpacked `dist-(x86).zip` in `local_electron`, rename to `electron-v37.2.2-win32-x64` for 64-Bit, and `electron-v37.2.2-win32-ia32` for 32-Bit.
+
+Inside this folder, you **must** include the files:  
+- `electron-v37.2.2-win32-x64` (for 64-Bit)
+- `electron-v37.2.2-win32-ia32` (for 32-Bit)
+
+Now open `package.json`. Replace `pnpm build:plugins && pnpm run build && electron --trace-warnings --ozone-platform-hint=auto ./ts-out/main.js` with `pnpm build:plugins && pnpm run build && local_electron\\electron-v37.2.2-win32-x64\\electron --trace-warnings --ozone-platform-hint=auto ./ts-out/main.js`. <br>
+In `"devDependencies"` section, replace `"electron"`'s version (e.g. `"^37.2.2"` with `"file:./local_electron"`). 
+
+Now, add this section.
+```js
+    "build": {
+      "electronDist": "./local_electron/electron-v37.2.2-win32-x64",
+      "electronVersion": "37.2.2"
+    },
+```
+> [!NOTE]
+> You must change `x64` to `ia32` if you are targetting to 32Bit.
+
+For Example, if code is like this,
+```js
+    "scripts": {
+        "build:dev": "rollup -c --environment BUILD:dev && tsx scripts/copyVenmic.mts",
+        "build:plugins": "lune ci --repoSubDir src/shelter --to ts-out/plugins",
+        "build": "pnpm build:plugins && rolldown -c rolldown.config.js && tsx scripts/copyVenmic.mts",
+        "start": "node scripts/electron.cjs .",
+        "startThemeManager": "pnpm run build:dev && electron ./ts-out/main.js themes",
+        "package": "pnpm run build && electron-builder",
+        "packageQuick": "pnpm run build && electron-builder --dir",
+        "lint": "biome check",
+        "lint:fix": "biome check --write",
+        "postinstall": "electron-builder install-app-deps",
+        "CIbuild": "pnpm run build && electron-builder --linux zip && electron-builder --windows zip && electron-builder --macos zip",
+        "updateMeta": "tsx scripts/utils/updateMeta.mts"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Legcord/Legcord.git"
+    },
+```
+
+Place like this.
+```js
+    "scripts": {
+        "build:dev": "rollup -c --environment BUILD:dev && tsx scripts/copyVenmic.mts",
+        "build:plugins": "lune ci --repoSubDir src/shelter --to ts-out/plugins",
+        "build": "pnpm build:plugins && rolldown -c rolldown.config.js && tsx scripts/copyVenmic.mts",
+        "start": "node scripts/electron.cjs .",
+        "startThemeManager": "pnpm run build:dev && electron ./ts-out/main.js themes",
+        "package": "pnpm run build && electron-builder",
+        "packageQuick": "pnpm run build && electron-builder --dir",
+        "lint": "biome check",
+        "lint:fix": "biome check --write",
+        "postinstall": "electron-builder install-app-deps",
+        "CIbuild": "pnpm run build && electron-builder --linux zip && electron-builder --windows zip && electron-builder --macos zip",
+        "updateMeta": "tsx scripts/utils/updateMeta.mts"
+    },
+    "build": {
+      "electronDist": "./local_electron/electron-v37.2.2-win32-x64",
+      "electronVersion": "37.2.2"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Legcord/Legcord.git"
+    },
+```
+
+Now, run this.
+
+```sh
+# Set architecture FIRST to build 32-bit (ia32) target
+set npm_config_arch=ia32
+
+# Install Dependencies
+pnpm i
+
+# Start the program
+pnpm start
+
+# Or package it for Windows
+pnpm package
+
+# For 32Bit Windows
+pnpm exec electron-builder --win --ia32
+
+```
+
+## For macOS Catalina (10.15)  
+> [!NOTE]  
+> Since macOS Catalina only supports Intel Macs, so building with universal binary is pointless.
+> 
+> You can replace `universal` with `x64` to build Intel Macs (x64 binaries) only.
+
+Open `package.json` and add this.
+```js
+"build": {
+  "mac": {
+    "minimumSystemVersion": "10.15.0",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64"]
+      }
+    ]
+  }
+}
+```
+For Example, if code is like this,
+```js
+{
+  "scripts": {
+    "build:dev": "rollup -c --environment BUILD:dev && tsx scripts/copyVenmic.mts",
+    "build:plugins": "lune ci --repoSubDir src/shelter --to ts-out/plugins",
+    "build": "pnpm build:plugins && rolldown -c rolldown.config.js && tsx scripts/copyVenmic.mts",
+    "start": "node scripts/electron.cjs .",
+    "startThemeManager": "pnpm run build:dev && electron ./ts-out/main.js themes",
+    "package": "pnpm run build && electron-builder",
+    "packageQuick": "pnpm run build && electron-builder --dir",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "postinstall": "electron-builder install-app-deps",
+    "CIbuild": "pnpm run build && electron-builder --linux zip && electron-builder --windows zip && electron-builder --macos zip",
+    "updateMeta": "tsx scripts/utils/updateMeta.mts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Legcord/Legcord.git"
+  }
+}
+```
+
+Place like this.
+```js
+    "scripts": {
+        "build:dev": "rollup -c --environment BUILD:dev && tsx scripts/copyVenmic.mts",
+        "build:plugins": "lune ci --repoSubDir src/shelter --to ts-out/plugins",
+        "build": "pnpm build:plugins && rolldown -c rolldown.config.js && tsx scripts/copyVenmic.mts",
+        "start": "node scripts/electron.cjs .",
+        "startThemeManager": "pnpm run build:dev && electron ./ts-out/main.js themes",
+        "package": "pnpm run build && electron-builder",
+        "packageQuick": "pnpm run build && electron-builder --dir",
+        "lint": "biome check",
+        "lint:fix": "biome check --write",
+        "postinstall": "electron-builder install-app-deps",
+        "CIbuild": "pnpm run build && electron-builder --linux zip && electron-builder --windows zip && electron-builder --macos zip",
+        "updateMeta": "tsx scripts/utils/updateMeta.mts"
+    },
+    "build": {
+      "mac": {
+        "minimumSystemVersion": "10.15.0",
+        "target": [
+          {
+            "target": "dmg",
+            "arch": ["x64"]
+          }
+        ]
+      }
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Legcord/Legcord.git"
+    },
+```
+
+Simply downgrade the Electron version as follows:
+
+```sh
+# Install dependencies
+pnpm i
+
+# Downgrade Electron to v32 (last version supported on Catalina, based on Chromium 128)
+pnpm i -f electron@32
+
+# Package the app
+pnpm package
+```
 
 # FAQ
 
 ## Do you have a support Discord?
 
-[![Discord Server](https://dcbadge.vercel.app/api/server/TnhxcqynZ2)](https://discord.gg/TnhxcqynZ2)
+- Since this is fork of Legcord, it's not guranteed to get supported using these legacy forks.
 
 ## Will I get banned for using this?
 
