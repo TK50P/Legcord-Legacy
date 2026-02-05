@@ -42,13 +42,14 @@
 
    Legcord was originally created for AArch64 Linux devices since Discord doesn't support them. We soon decided to support every platform that [Electron supports](https://github.com/electron/electron#platform-support)!
 
-- **_NT 6.x Support!!!_**
+- **_NT 5.x, 6.x Support!!!_**
 
-   Legcord-Legacy is designed to run on Legacy Windows Systems like 32Bit Windows or Windows NT 6.x (Vista _with [Extended Kernel](https://win32subsystem.live/extended-kernel/)_ Windows 7 and 8, 8.1) Support.
+   Legcord-Legacy is designed to run on Legacy Windows Systems like 32Bit Windows or Windows NT 5.x/6.x (XP _with [One-Core-API](https://github.com/shorthorn-project/One-Core-API-Binaries)_, Vista _with [Extended Kernel](https://win32subsystem.live/extended-kernel/)_ Windows 7 and 8, 8.1) Support.
 
 - **_macOS Catalina 10.15 Support!!!_**
 
    Legcord-Legacy is designed to run on Legacy macOS, currently supports macOS Catalina (10.15).
+<img width="1920" height="1080" alt="Windows XP Japanese-2026-02-05-18-31-34" src="https://github.com/user-attachments/assets/011632ba-1570-4089-90b6-9623e3b24109" />
 <img width="1920" height="1080" alt="Windows Vista-2025-11-22-12-12-01" src="https://github.com/user-attachments/assets/8c04c57f-fb05-4ed3-a0ef-1cb85a20795e" />
 <img width="1920" height="1080" alt="Windows_7_Main-2025-11-01-19-28-27" src="https://github.com/user-attachments/assets/c4cf9e07-55b4-4497-b7c2-5765b46b2933" />
   
