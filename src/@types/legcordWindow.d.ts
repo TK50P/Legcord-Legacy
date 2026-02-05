@@ -66,6 +66,7 @@ export interface LegcordWindow {
         openQuickCss: () => void;
         edit: (id: string) => void;
         folder: (id: string) => void;
+        importQuickCss: (css: string) => void;
     };
     rpc: {
         listen: (
@@ -80,6 +81,19 @@ export interface LegcordWindow {
         getProcessList: () => ProcessInfo[];
         refreshProcessList: () => void;
         addDetectable: (e: Game) => void;
+        removeDetectable: (id: string) => void;
         getDetectables: () => GameList;
+    };
+    /** Plugin storage API. Requires user to enable "Extended plugin abilities" in Legcord settings. */
+    fs: {
+        writeFile: (
+            pluginId: string,
+            relativePath: string,
+            data: string,
+        ) => Promise<{ ok: true } | { ok: false; error: string }>;
+        readFile: (
+            pluginId: string,
+            relativePath: string,
+        ) => Promise<{ ok: true; data: string } | { ok: false; error: string }>;
     };
 }

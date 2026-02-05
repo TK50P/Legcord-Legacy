@@ -2,8 +2,14 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "no
 import { dirname, join } from "node:path";
 import { app, dialog } from "electron";
 import type { Settings } from "../@types/settings.js";
+import { getLang } from "./lang.js";
 import { getWindowStateLocation } from "./windowState.js";
 export let firstRun: boolean;
+
+// Performance optimization: Cache config to avoid reading file on every call
+let configCache: Settings | null = null;
+let configCacheTime = 0;
+const CONFIG_CACHE_TTL = 1000; // Cache for 1 second
 const defaults: Settings = {
     windowStyle: "default",
     channel: "stable",
@@ -54,6 +60,7 @@ const defaults: Settings = {
     smoothScroll: true,
     autoScroll: false,
     useSystemCssEditor: false,
+    extendedPluginAbilities: false,
 };
 
 const safeMode: Settings = {
@@ -62,6 +69,7 @@ const safeMode: Settings = {
     windowStyle: "native",
     hardwareAcceleration: false,
     disableHttpCache: true,
+    extendedPluginAbilities: false,
 };
 
 export function checkForDataFolder(): void {
@@ -82,8 +90,17 @@ export function getConfig<K extends keyof Settings>(object: K): Settings[K] {
     if (process.argv.includes("--safe-mode")) {
         return safeMode[object];
     }
+
+    // Performance optimization: Use cached config if available and fresh
+    const now = Date.now();
+    if (configCache && now - configCacheTime < CONFIG_CACHE_TTL) {
+        return configCache[object];
+    }
+
     const rawData = readFileSync(getConfigLocation(), "utf-8");
     const returnData = JSON.parse(rawData) as Settings;
+    configCache = returnData;
+    configCacheTime = now;
     return returnData[object];
 }
 export function setConfig<K extends keyof Settings>(object: K, toSet: Settings[K]): void {
@@ -92,6 +109,10 @@ export function setConfig<K extends keyof Settings>(object: K, toSet: Settings[K
     parsed[object] = toSet;
     const toSave = JSON.stringify(parsed, null, 4);
     writeFileSync(getConfigLocation(), toSave, "utf-8");
+
+    // Performance optimization: Update cache immediately
+    configCache = parsed;
+    configCacheTime = Date.now();
 }
 export function setConfigBulk(object: Settings): void {
     let existingData = {};
@@ -106,6 +127,10 @@ export function setConfigBulk(object: Settings): void {
     // Write the merged data back to the file
     const toSave = JSON.stringify(mergedData, null, 4);
     writeFileSync(getConfigLocation(), toSave, "utf-8");
+
+    // Performance optimization: Update cache immediately
+    configCache = mergedData as Settings;
+    configCacheTime = Date.now();
 }
 export function checkIfConfigExists(): void {
     const userDataPath = app.getPath("userData");
@@ -142,6 +167,10 @@ export function checkIfConfigIsBroken(): void {
         const settingsData = readFileSync(getConfigLocation(), "utf-8");
         const settingsObject = JSON.parse(settingsData) as Settings;
 
+        // Performance optimization: Update cache after validation
+        configCache = settingsObject;
+        configCacheTime = Date.now();
+
         let configWasFine = true;
         const settingsKeys = Object.keys(settingsObject) as (keyof Settings)[];
         const defaultKeys = Object.keys(defaults) as (keyof Settings)[];
@@ -167,15 +196,19 @@ export function checkIfConfigIsBroken(): void {
             setConfig(missingKey, defaults[missingKey]);
         });
 
+        // Performance optimization: Ensure cache is updated after fixes
+        if (!configWasFine) {
+            const updatedData = readFileSync(getConfigLocation(), "utf-8");
+            configCache = JSON.parse(updatedData) as Settings;
+            configCacheTime = Date.now();
+        }
+
         console.log(configWasFine ? "Config is fine" : "Config is now fine");
     } catch (e) {
         console.error(e);
         console.log("Detected a corrupted config");
         setup();
-        dialog.showErrorBox(
-            "Oops, something went wrong.",
-            "Legcord has detected that your configuration file is corrupted, please restart the app and set your settings again. If this issue persists, report it on the support server/Github issues.",
-        );
+        dialog.showErrorBox(getLang("config-corrupted-title"), getLang("config-corrupted-message"));
     }
     try {
         const windowData = readFileSync(getWindowStateLocation(), "utf-8");

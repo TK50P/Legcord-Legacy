@@ -1,5 +1,7 @@
 import type { Game } from "arrpc";
 import { createSignal } from "solid-js";
+import { setRestartRequired } from "../settings.js";
+
 const {
     ui: {
         ModalRoot,
@@ -11,10 +13,13 @@ const {
         Header,
         HeaderTags,
         Divider,
+        SwitchItem,
         showToast,
+        openConfirmationModal,
     },
     plugin: { store },
 } = shelter;
+
 export const AddDetectableModal = (props: { close: () => void; executable: string }) => {
     const [appName, setAppName] = createSignal("");
     const [appId, setAppId] = createSignal("");
@@ -25,8 +30,8 @@ export const AddDetectableModal = (props: { close: () => void; executable: strin
     function save() {
         if (!appName().trim() || !appId().trim() || !props.executable) {
             return showToast({
-                title: "Missing fields",
-                content: "Please fill in all fields before adding.",
+                title: store.i18n["detectable-missingFields"],
+                content: store.i18n["detectable-fillAllFields"],
                 duration: 3000,
             });
         }
@@ -41,51 +46,70 @@ export const AddDetectableModal = (props: { close: () => void; executable: strin
                 },
             ],
             id: appId().trim(),
-            aliases:
-                aliases()
-                    .split(",")
-                    .map((a) => a.trim()) || [],
+            aliases: aliases()
+                .split(",")
+                .map((a) => a.trim())
+                .filter(Boolean),
             hook: false,
             overlay: true,
             overlay_compatibility_hook: false,
             overlay_methods: null,
             overlay_warn: false,
-            themes:
-                themes()
-                    .split(",")
-                    .map((t) => t.trim()) || [],
+            themes: themes()
+                .split(",")
+                .map((t) => t.trim())
+                .filter(Boolean),
         };
         current.push(game);
         store.settings.detectables = current;
-        window.legcord.rpc.addDetectable(game);
+        // Send a plain object so IPC structured clone does not fail (store may wrap with proxies)
+        window.legcord.rpc.addDetectable(JSON.parse(JSON.stringify(game)) as Game);
+        setRestartRequired();
+
         props.close();
+
+        openConfirmationModal({
+            header: () => store.i18n["settings-restartRequired"],
+            body: () => store.i18n["settings-restartRequiredBody"],
+            type: "danger",
+            confirmText: store.i18n["settings-restart"],
+            cancelText: store.i18n["settings-restartLater"],
+        }).then(
+            () => window.legcord.restart(),
+            () => {},
+        );
     }
+
+    const t = store.i18n;
+    const canSave = () =>
+        Boolean(appName().trim() && appId().trim() && props.executable && props.executable !== "refresh");
 
     return (
         <ModalRoot size={ModalSizes.SMALL}>
-            <ModalHeader close={props.close}>Add Detectable Application</ModalHeader>
+            <ModalHeader close={props.close}>{t["detectable-addApp"]}</ModalHeader>
             <ModalBody>
-                <Header tag={HeaderTags.H5}>App Name*</Header>
-                <TextBox value={appName()} onInput={setAppName} placeholder="e.g. Discord" />
+                <Header tag={HeaderTags.H5}>{t["detectable-appName"]}</Header>
+                <TextBox value={appName()} onInput={setAppName} placeholder={t["detectable-placeholderName"]} />
                 <Divider mt mb />
-                <Header tag={HeaderTags.H5}>App ID*</Header>
-                <TextBox value={appId()} onInput={setAppId} placeholder="e.g. 1234567890" />
+                <Header tag={HeaderTags.H5}>{t["detectable-appId"]}</Header>
+                <TextBox value={appId()} onInput={setAppId} placeholder={t["detectable-placeholderId"]} />
                 <Divider mt mb />
-                <Header tag={HeaderTags.H5}>Themes</Header>
-                <TextBox value={themes()} onInput={setThemes} placeholder="Action, Adventure" />
+                <Header tag={HeaderTags.H5}>{t["detectable-themes"]}</Header>
+                <TextBox value={themes()} onInput={setThemes} placeholder={t["detectable-placeholderThemes"]} />
                 <Divider mt mb />
-                <Header tag={HeaderTags.H5}>Aliases</Header>
-                <TextBox value={aliases()} onInput={setAliases} placeholder="Alias1, Alias2" />
-                <label style={{ display: "flex", "align-items": "center", gap: "0.5em" }}>
-                    <input
-                        type="checkbox"
-                        checked={enabled()}
-                        onChange={(e) => setEnabled((e.target as HTMLInputElement).checked)}
-                    />
-                    Enabled
-                </label>
+                <Header tag={HeaderTags.H5}>{t["detectable-aliases"]}</Header>
+                <TextBox value={aliases()} onInput={setAliases} placeholder={t["detectable-placeholderAliases"]} />
+                <Divider mt mb />
+                <SwitchItem hideBorder value={enabled()} onChange={setEnabled}>
+                    {t["detectable-enabled"]}
+                </SwitchItem>
             </ModalBody>
-            <ModalConfirmFooter confirmText="Add" onConfirm={save} close={props.close} />
+            <ModalConfirmFooter
+                confirmText={t["keybind-add"]}
+                onConfirm={save}
+                close={props.close}
+                disabled={!canSave()}
+            />
         </ModalRoot>
     );
 };

@@ -49,7 +49,7 @@ contextBridge.exposeInMainWorld("legcord", {
     electron: process.versions.electron,
     translations: ipcRenderer.sendSync("getTranslations") as string,
     getLang: async (toGet: string) =>
-        await ipcRenderer.invoke("getLang", toGet).then((result) => {
+        await ipcRenderer.invoke("getLang", toGet).then((result: string) => {
             return result as string;
         }),
     screenshare: {
@@ -61,19 +61,19 @@ contextBridge.exposeInMainWorld("legcord", {
         start: (source: string, name: string, audio: boolean) =>
             ipcRenderer.send("startScreenshare", source, name, audio),
         venmicStart: async (include: Node[]) =>
-            await ipcRenderer.invoke("venmicStart", include).then((result) => {
+            await ipcRenderer.invoke("venmicStart", include).then((result: venmicListObject) => {
                 return result as venmicListObject;
             }),
         venmicSystemStart: async (exclude: Node[]) =>
-            await ipcRenderer.invoke("venmicSystemStart", exclude).then((result) => {
+            await ipcRenderer.invoke("venmicSystemStart", exclude).then((result: boolean) => {
                 return result as boolean;
             }),
         venmicList: async () =>
-            await ipcRenderer.invoke("venmicList").then((result) => {
+            await ipcRenderer.invoke("venmicList").then((result: undefined) => {
                 return result as undefined;
             }),
         venmicStop: async () =>
-            await ipcRenderer.invoke("venmicStop").then((result) => {
+            await ipcRenderer.invoke("venmicStop").then((result: undefined) => {
                 return result as undefined;
             }),
     },
@@ -90,6 +90,7 @@ contextBridge.exposeInMainWorld("legcord", {
         set: (id: string, state: boolean) => ipcRenderer.send("setThemeEnabled", id, state),
         folder: (id: string) => ipcRenderer.send("openThemeFolder", id),
         openQuickCss: () => ipcRenderer.send("openQuickCss"),
+        importQuickCss: (css: string) => ipcRenderer.send("importQuickCss", css),
     },
     rpc: {
         listen: (callback: () => void) => {
@@ -98,11 +99,37 @@ contextBridge.exposeInMainWorld("legcord", {
         refreshProcessList: () => ipcRenderer.send("refreshProcessList"),
         getProcessList: () => ipcRenderer.sendSync("getProcessList"),
         addDetectable: (detectable: Game) => ipcRenderer.send("addDetectable", detectable),
+        removeDetectable: (id: string) => ipcRenderer.send("removeDetectable", id),
         getDetectables: () => ipcRenderer.sendSync("getDetectables") as Game[],
+    },
+    fs: {
+        /**
+         * Write a file in this plugin's scoped storage (e.g. "cache/deleted-messages.json").
+         * Only works when the user has enabled "Extended plugin abilities" in Legcord settings.
+         * @param pluginId - Your plugin id (alphanumeric, dash, underscore only)
+         * @param relativePath - Path relative to plugin storage (no ".." allowed)
+         * @returns { ok: true } or { ok: false, error: "EXTENSION_DISABLED" | "INVALID_PATH" | ... }
+         */
+        writeFile: (pluginId: string, relativePath: string, data: string) =>
+            ipcRenderer.invoke("pluginWriteFile", pluginId, relativePath, data) as Promise<
+                { ok: true } | { ok: false; error: string }
+            >,
+        /**
+         * Read a file from this plugin's scoped storage.
+         * Only works when the user has enabled "Extended plugin abilities" in Legcord settings.
+         * @param pluginId - Your plugin id
+         * @param relativePath - Path relative to plugin storage
+         * @returns { ok: true, data: string } or { ok: false, error: "EXTENSION_DISABLED" | "NOT_FOUND" | ... }
+         */
+        readFile: (pluginId: string, relativePath: string) =>
+            ipcRenderer.invoke("pluginReadFile", pluginId, relativePath) as Promise<
+                { ok: true; data: string } | { ok: false; error: string }
+            >,
     },
 } as unknown as LegcordWindow);
 
-ipcRenderer.on("rpc", (_event, data: object) => {
+// biome-ignore lint/suspicious/noExplicitAny: FIX-ME
+ipcRenderer.on("rpc", (_event: any, data: object) => {
     console.log(data);
     windowCallback(data);
 });

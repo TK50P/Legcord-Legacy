@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { Game } from "arrpc";
@@ -8,7 +8,7 @@ import type { Keybind } from "../@types/keybind.js";
 import type { Settings } from "../@types/settings.js";
 import type { ThemeManifest } from "../@types/themeManifest.js";
 import { getConfig, getConfigLocation, setConfig, setConfigBulk } from "../common/config.js";
-import { addDetectable, getDetectables } from "../common/detectables.js";
+import { addDetectable, getDetectables, removeDetectable } from "../common/detectables.js";
 import { getLang, getLangName, getRawLang, setLang } from "../common/lang.js";
 import { installTheme, setThemeEnabled, uninstallTheme } from "../common/themes.js";
 import { getDisplayVersion, getVersion } from "../common/version.js";
@@ -24,7 +24,23 @@ const userDataPath = app.getPath("userData");
 const storagePath = path.join(userDataPath, "/storage/");
 const themesPath = path.join(userDataPath, "/themes/");
 const pluginsPath = path.join(userDataPath, "/plugins/");
+const pluginStoragePath = path.join(userDataPath, "/plugin-storage/");
 const quickCssPath = path.join(userDataPath, "/quickCss.css");
+
+/** Sanitize plugin id to safe dir name (alphanumeric, dash, underscore only). */
+function sanitizePluginId(pluginId: string): string {
+    return pluginId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "default";
+}
+
+/** Resolve relative path for a plugin; returns null if path escapes plugin dir. */
+function resolvePluginFilePath(pluginId: string, relativePath: string): string | null {
+    const safeId = sanitizePluginId(pluginId);
+    const baseDir = path.resolve(pluginStoragePath, safeId);
+    const resolved = path.resolve(baseDir, path.normalize(relativePath));
+    const relative = path.relative(baseDir, resolved);
+    if (relative.startsWith("..") || path.isAbsolute(relative)) return null;
+    return resolved;
+}
 
 function ifExistsRead(path: string): string | undefined {
     if (existsSync(path)) return readFileSync(path, "utf-8");
@@ -70,18 +86,23 @@ export function registerIpc(passedWindow: BrowserWindow): void {
             openCssEditor(quickCssPath);
         }
     });
+    ipcMain.on("importQuickCss", (_event, css: string) => {
+        let currentCss = readFileSync(quickCssPath, "utf-8");
+        currentCss += `\n/* Imported CSS */\n${css}`;
+        writeFileSync(quickCssPath, currentCss, "utf-8");
+    });
     ipcMain.on("openThemesFolder", () => {
         shell.showItemInFolder(themesPath);
     });
     ipcMain.on("openImportPicker", () => {
         dialog
             .showOpenDialog({
-                title: "Select a theme you want to import",
-                buttonLabel: "Import",
+                title: getLang("dialog-importTheme-title"),
+                buttonLabel: getLang("dialog-importTheme-button"),
                 properties: ["openFile", "multiSelections"],
                 filters: [
-                    { name: "Discord styles", extensions: ["scss", "css"] },
-                    { name: "All Files", extensions: ["*"] },
+                    { name: getLang("dialog-importTheme-discordStyles"), extensions: ["scss", "css"] },
+                    { name: getLang("dialog-importTheme-allFiles"), extensions: ["*"] },
                 ],
             })
             .then((result) => {
@@ -284,7 +305,7 @@ export function registerIpc(passedWindow: BrowserWindow): void {
         dialog
             .showOpenDialog({
                 properties: ["openFile"],
-                filters: [{ name: "Icons", extensions: ["ico", "png", "icns"] }],
+                filters: [{ name: getLang("dialog-customIcon-filters"), extensions: ["ico", "png", "icns"] }],
             })
             .then((result) => {
                 if (result.canceled) return;
@@ -309,4 +330,58 @@ export function registerIpc(passedWindow: BrowserWindow): void {
     ipcMain.on("addDetectable", (_event, game: Game) => {
         addDetectable(game);
     });
+    ipcMain.on("removeDetectable", (_event, id: string) => {
+        removeDetectable(id);
+    });
+
+    // Plugin storage API (gated by extendedPluginAbilities)
+    ipcMain.handle(
+        "pluginWriteFile",
+        async (
+            _event,
+            pluginId: string,
+            relativePath: string,
+            data: string,
+        ): Promise<{ ok: true } | { ok: false; error: string }> => {
+            if (!getConfig("extendedPluginAbilities")) {
+                return { ok: false, error: "EXTENSION_DISABLED" };
+            }
+            if (typeof pluginId !== "string" || typeof relativePath !== "string" || typeof data !== "string") {
+                return { ok: false, error: "INVALID_ARGS" };
+            }
+            const resolved = resolvePluginFilePath(pluginId, relativePath);
+            if (!resolved) return { ok: false, error: "INVALID_PATH" };
+            try {
+                mkdirSync(path.dirname(resolved), { recursive: true });
+                writeFileSync(resolved, data, "utf-8");
+                return { ok: true };
+            } catch (err) {
+                return { ok: false, error: err instanceof Error ? err.message : "UNKNOWN" };
+            }
+        },
+    );
+    ipcMain.handle(
+        "pluginReadFile",
+        async (
+            _event,
+            pluginId: string,
+            relativePath: string,
+        ): Promise<{ ok: true; data: string } | { ok: false; error: string }> => {
+            if (!getConfig("extendedPluginAbilities")) {
+                return { ok: false, error: "EXTENSION_DISABLED" };
+            }
+            if (typeof pluginId !== "string" || typeof relativePath !== "string") {
+                return { ok: false, error: "INVALID_ARGS" };
+            }
+            const resolved = resolvePluginFilePath(pluginId, relativePath);
+            if (!resolved) return { ok: false, error: "INVALID_PATH" };
+            try {
+                if (!existsSync(resolved)) return { ok: false, error: "NOT_FOUND" };
+                const data = readFileSync(resolved, "utf-8");
+                return { ok: true, data };
+            } catch (err) {
+                return { ok: false, error: err instanceof Error ? err.message : "UNKNOWN" };
+            }
+        },
+    );
 }

@@ -39,6 +39,13 @@ export function SettingsPage() {
             >
                 Equicord
             </SwitchItem>
+            <SwitchItem
+                note={store.i18n["settings-extendedPluginAbilities-desc"]}
+                value={settings.extendedPluginAbilities}
+                onChange={(e: boolean) => setConfig("extendedPluginAbilities", e)}
+            >
+                {store.i18n["settings-extendedPluginAbilities"]}
+            </SwitchItem>
             <DropdownItem
                 value={settings.windowStyle}
                 onChange={(v) => setConfig("windowStyle", v as Settings["windowStyle"], true)}
@@ -49,7 +56,7 @@ export function SettingsPage() {
                     { label: store.i18n["settings-theme-default"], value: "default" },
                     { label: store.i18n["settings-theme-native"], value: "native" },
                     { label: store.i18n["settings-theme-overlay"], value: "overlay" },
-                    { label: "Legacy", value: "legacy" },
+                    { label: store.i18n["settings-theme-legacy"], value: "legacy" },
                 ]}
             />
             <DropdownItem
@@ -145,9 +152,9 @@ export function SettingsPage() {
                 note={store.i18n["settings-channel-desc"]}
                 link="https://support.discord.com/hc/en-us/articles/360035675191-Discord-Testing-Clients"
                 options={[
-                    { label: "Stable", value: "stable" },
-                    { label: "Canary", value: "canary" },
-                    { label: "PTB", value: "ptb" },
+                    { label: store.i18n["settings-channel-stable"], value: "stable" },
+                    { label: store.i18n["settings-channel-canary"], value: "canary" },
+                    { label: store.i18n["settings-channel-ptb"], value: "ptb" },
                 ]}
             />
             <SwitchItem
@@ -223,7 +230,7 @@ export function SettingsPage() {
                 {store.i18n["settings-spellcheck"]}
             </SwitchItem>
             <Header class={classes.category} tag={HeaderTags.H5}>
-                Power Management
+                {store.i18n["settings-category-powerManagement"]}
             </Header>
             <DropdownItem
                 value={settings.performanceMode}
@@ -254,7 +261,7 @@ export function SettingsPage() {
                 {store.i18n["settings-sleepInBackground"]}
             </SwitchItem>
             <Header class={classes.category} tag={HeaderTags.H5}>
-                arRPC
+                {store.i18n["settings-category-arrpc"]}
             </Header>
             <SwitchItem
                 note={store.i18n["settings-invitewebsocket-desc"]}
@@ -294,7 +301,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-deviceSelect-desc"]}
                     value={settings.audio.deviceSelect}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.deviceSelect = e;
                         setConfig("audio", audioSettings);
@@ -305,7 +312,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-granularSelect-desc"]}
                     value={settings.audio.granularSelect}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.granularSelect = e;
                         setConfig("audio", audioSettings);
@@ -316,7 +323,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-workaround-desc"]}
                     value={settings.audio.workaround}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.workaround = e;
                         setConfig("audio", audioSettings);
@@ -327,7 +334,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-ignoreVirtual-desc"]}
                     value={settings.audio.ignoreVirtual}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.ignoreVirtual = e;
                         setConfig("audio", audioSettings);
@@ -338,7 +345,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-ignoreDevices-desc"]}
                     value={settings.audio.ignoreDevices}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.ignoreDevices = e;
                         setConfig("audio", audioSettings);
@@ -349,7 +356,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-ignoreInputMedia-desc"]}
                     value={settings.audio.ignoreInputMedia}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.ignoreInputMedia = e;
                         setConfig("audio", audioSettings);
@@ -360,7 +367,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-onlySpeakers-desc"]}
                     value={settings.audio.onlySpeakers}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.onlySpeakers = e;
                         setConfig("audio", audioSettings);
@@ -371,7 +378,7 @@ export function SettingsPage() {
                 <SwitchItem
                     note={store.i18n["settings-venmic-onlyDefaultSpeakers-desc"]}
                     value={settings.audio.onlyDefaultSpeakers}
-                    onChange={(e) => {
+                    onChange={(e: boolean) => {
                         const audioSettings = structuredClone({ ...settings.audio });
                         audioSettings.onlyDefaultSpeakers = e;
                         setConfig("audio", audioSettings);
@@ -391,8 +398,8 @@ export function SettingsPage() {
                 note={store.i18n["settings-audio-desc"]}
                 link="https://www.electronjs.org/docs/latest/api/session#sessetdisplaymediarequesthandlerhandler-opts"
                 options={[
-                    { label: "Loopback", value: "loopback" },
-                    { label: "Loopback with mute", value: "loopbackWithMute" },
+                    { label: store.i18n["settings-audio-loopback"], value: "loopback" },
+                    { label: store.i18n["settings-audio-loopbackWithMute"], value: "loopbackWithMute" },
                 ]}
             />
             <SwitchItem
