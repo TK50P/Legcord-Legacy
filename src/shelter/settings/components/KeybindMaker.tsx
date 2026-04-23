@@ -105,9 +105,9 @@ export const KeybindMaker = (props: { close: () => void }) => {
                     </Show>
                 </span>
                 <div class={classes.grabBox}>
-                    {/* FIXME -  I have no idea what this `disabled` tag is, its not in the typedefs 
-                    // @ts-expect-error*/}
-                    <TextBox disabled value={accelerator()} onInput={setAccelerator} />
+                    <div style={{ flex: "1", "min-width": "0" }}>
+                        <TextBox disabled value={accelerator()} onInput={setAccelerator} />
+                    </div>
                     {recording() ? (
                         <Button
                             class={classes.recBtn}
@@ -132,6 +132,7 @@ export const KeybindMaker = (props: { close: () => void }) => {
                     options={[
                         { label: t["keybind-mute"], value: "mute" },
                         { label: t["keybind-deafen"], value: "deafen" },
+                        // { label: t["keybind-pushToTalk"], value: "pushToTalk" }, disabled for now since it requires additional logic to work properly
                         { label: t["keybind-leaveCall"], value: "leaveCall" },
                         { label: t["keybind-navigateForward"], value: "navigateForward" },
                         { label: t["keybind-navigateBack"], value: "navigateBack" },

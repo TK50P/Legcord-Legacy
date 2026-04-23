@@ -15,7 +15,7 @@ import { firstRun, getConfig, setConfig } from "../common/config.js";
 import { navigateTo } from "../common/dom.js";
 import { forceQuit, setForceQuit } from "../common/forceQuit.js";
 import { getLang } from "../common/lang.js";
-import { initQuickCss, injectThemesMain } from "../common/themes.js";
+import { injectThemesMain } from "../common/themes.js";
 import { getWindowState, setWindowState } from "../common/windowState.js";
 import { init } from "../main.js";
 import { registerGlobalKeybinds } from "./globalKeybinds.js";
@@ -218,52 +218,59 @@ function doAfterDefiningTheWindow(passedWindow: BrowserWindow): void {
             }
         });
     }
-    initQuickCss(passedWindow);
+
     passedWindow.setTouchBar(mainTouchBar);
     app.on("open-url", (_event, url) => {
         navigateTo(passedWindow, url.replace("discord://-", ""));
     });
 
     passedWindow.webContents.on("page-title-updated", (e, title) => {
-        const legcordSuffix = " - Legcord"; /* identify */
+        const legcordSuffix = " - Legcord";
         const unreadMessages = getLang("title-unreadMessages");
 
-        // FIXME - This is a bit of a mess. I'm not sure how to clean it up.
+        // Helper to extract ping count from title
+        const extractPings = (t: string): number | null => {
+            const match = /\((\d+)\)/.exec(t);
+            return match ? Number.parseInt(match[1]) : null;
+        };
+
+        // Handle overlay icon/badges based on platform
         if (process.platform === "win32") {
-            if (title.startsWith("•"))
-                return passedWindow.setOverlayIcon(
+            if (title.startsWith("•")) {
+                passedWindow.setOverlayIcon(
                     nativeImage.createFromPath(path.join(import.meta.dirname, "../", "/assets/badge-11.ico")),
                     unreadMessages,
                 );
-            if (title.startsWith("(")) {
-                const pings = Number.parseInt(/\((\d+)\)/.exec(title)![1]);
-                if (pings > 9) {
-                    return passedWindow.setOverlayIcon(
-                        nativeImage.createFromPath(path.join(import.meta.dirname, "../", "/assets/badge-10.ico")),
-                        unreadMessages,
-                    );
-                } else {
-                    return passedWindow.setOverlayIcon(
-                        nativeImage.createFromPath(path.join(import.meta.dirname, "../", `/assets/badge-${pings}.ico`)),
-                        unreadMessages,
-                    );
-                }
+            } else if (title.startsWith("(")) {
+                const pings = extractPings(title);
+                const badgeFile = pings && pings > 9 ? "badge-10.ico" : `badge-${pings}.ico`;
+                passedWindow.setOverlayIcon(
+                    nativeImage.createFromPath(path.join(import.meta.dirname, "../", `/assets/${badgeFile}`)),
+                    unreadMessages,
+                );
+            } else {
+                passedWindow.setOverlayIcon(null, "");
             }
-            passedWindow.setOverlayIcon(null, "");
         }
+
         if (process.platform === "darwin") {
-            if (title.startsWith("•")) return app.dock?.setBadge("•");
-            if (title.startsWith("(")) {
-                if (getConfig("bounceOnPing")) app.dock?.bounce();
-                return app.setBadgeCount(Number.parseInt(/\((\d+)\)/.exec(title)![1]));
+            if (title.startsWith("•")) {
+                app.dock?.setBadge("•");
+            } else if (title.startsWith("(")) {
+                const pings = extractPings(title);
+                if (pings && getConfig("bounceOnPing")) app.dock?.bounce();
+                app.setBadgeCount(pings ?? 0);
+            } else {
+                app.setBadgeCount(0);
             }
-            app.setBadgeCount(0);
         }
+
+        // Update window title with Legcord suffix
         if (!title.endsWith(legcordSuffix)) {
             e.preventDefault();
-            void passedWindow.webContents.executeJavaScript(
-                `document.title = '${title.replace("Discord |", "") + legcordSuffix}'`,
-            );
+            // Security: Use JSON.stringify to prevent code injection via title
+            const safeTitle = JSON.stringify(title.replace("Discord |", "") + legcordSuffix);
+            void passedWindow.webContents.executeJavaScript(`document.title = ${safeTitle}`);
         }
     });
     injectThemesMain(passedWindow);
@@ -297,7 +304,15 @@ function doAfterDefiningTheWindow(passedWindow: BrowserWindow): void {
         setForceQuit(true);
     });
     passedWindow.webContents.session.webRequest.onBeforeRequest((details, callback) => {
-        if (details.url.includes("ws://127.0.0.1:")) return callback({ cancel: true });
+        // Lune Dev exceptions, https://github.com/uwu/shelter/blob/8d4ca369bf01abf348df9d4e111d534800c7a38c/packages/shelter/src/devmode/index.tsx#L24
+        if (
+            details.url.includes("ws://127.0.0.1:") &&
+            !details.url.includes("127.0.0.1:1211") &&
+            !details.url.includes("127.0.0.1:1112") &&
+            !details.url.includes("127.0.0.1:6888")
+        ) {
+            return callback({ cancel: true });
+        }
         return callback({});
     });
     passedWindow.on("focus", () => {
@@ -369,6 +384,7 @@ export function createWindow() {
                 browserWindowOptions.titleBarStyle = "hidden";
                 browserWindowOptions.titleBarOverlay = false;
             }
+            break;
         case "native":
             browserWindowOptions.frame = true;
             break;
@@ -395,7 +411,7 @@ export function createWindow() {
                 browserWindowOptions.backgroundColor = "#00000000";
                 browserWindowOptions.transparent = false;
                 browserWindowOptions.frame = true;
-                browserWindowOptions.backgroundMaterial = "acrylic";
+                browserWindowOptions.backgroundMaterial = getConfig("windowMaterial");
             } else if (os.platform() === "darwin") {
                 browserWindowOptions.backgroundColor = "#00000000";
                 browserWindowOptions.vibrancy = "fullscreen-ui";

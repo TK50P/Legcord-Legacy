@@ -1,8 +1,10 @@
 import { Show } from "solid-js";
 import type { Settings } from "../../../@types/settings.js";
+import { BackupSection } from "../components/BackupSection.jsx";
 import { DropdownItem } from "../components/DropdownItem.jsx";
+import { SupportBanner } from "../components/SupportBanner.jsx";
 import { TextBoxItem } from "../components/TextBoxItem.jsx";
-import { setConfig, toggleMod } from "../settings.js";
+import { isMinWindowsVersion, setConfig, toggleMod } from "../settings.js";
 import classes from "./SettingsPage.module.css";
 
 const {
@@ -11,20 +13,35 @@ const {
 } = shelter;
 
 const settings = store.settings as Settings;
+const noBundleUpdates = () => {
+    const value = settings.noBundleUpdates;
+    if (Array.isArray(value)) return value;
+    return value ? ["shelter", "vencord", "equicord", "custom"] : [];
+};
 
 export function SettingsPage() {
     return (
         <>
+            <Show when={!settings.supportBannerDismissed}>
+                <SupportBanner />
+            </Show>
+
+            <BackupSection />
             <Header class={classes.category} tag={HeaderTags.H5}>
                 {store.i18n["settings-category-mods"]}
             </Header>
-            <SwitchItem
+            <DropdownItem
+                value={settings.csp}
+                onChange={(v) => setConfig("csp", v as Settings["csp"], true)}
+                title={store.i18n["settings-csp"]}
                 note={store.i18n["settings-csp-desc"]}
-                value={settings.legcordCSP}
-                onChange={(e: boolean) => setConfig("legcordCSP", e, true)}
-            >
-                Legcord CSP
-            </SwitchItem>
+                link="https://github.com/Legcord/Legcord/wiki/CSP-Options"
+                options={[
+                    { label: store.i18n["settings-csp-none"], value: "none" },
+                    { label: store.i18n["settings-csp-strict"], value: "strict" },
+                    { label: store.i18n["settings-csp-vanilla"], value: "vanilla" },
+                ]}
+            />
             <SwitchItem
                 note={store.i18n["settings-mod-vencord"]}
                 value={settings.mods.includes("vencord")}
@@ -59,6 +76,15 @@ export function SettingsPage() {
                     { label: store.i18n["settings-theme-legacy"], value: "legacy" },
                 ]}
             />
+            <Show when={settings.windowStyle === "native"}>
+                <SwitchItem
+                    note={store.i18n["settings-autoHideMenuBar-desc"]}
+                    value={settings.autoHideMenuBar}
+                    onChange={(e: boolean) => setConfig("autoHideMenuBar", e, true)}
+                >
+                    {store.i18n["settings-autoHideMenuBar"]}
+                </SwitchItem>
+            </Show>
             <DropdownItem
                 value={store.settings.transparency}
                 onChange={(v) => setConfig("transparency", v as Settings["transparency"], true)}
@@ -86,21 +112,41 @@ export function SettingsPage() {
                     </Show>
                 }
                 options={[
-                    { label: store.i18n["settings-transparency-universal"], value: "universal" },
+                    {
+                        label: store.i18n["settings-transparency-universal"],
+                        value: "universal",
+                    },
                     ...(window.legcord.platform === "win32" || window.legcord.platform === "darwin"
-                        ? [{ label: store.i18n["settings-transparency-modern"], value: "modern" }]
+                        ? [
+                              {
+                                  label: store.i18n["settings-transparency-modern"],
+                                  value: "modern",
+                              },
+                          ]
                         : []),
                     { label: store.i18n["settings-none"], value: "none" },
                 ]}
             />
-            <Show when={settings.windowStyle === "native"}>
-                <SwitchItem
-                    note={store.i18n["settings-autoHideMenuBar-desc"]}
-                    value={settings.autoHideMenuBar}
-                    onChange={(e: boolean) => setConfig("autoHideMenuBar", e, true)}
-                >
-                    {store.i18n["settings-autoHideMenuBar"]}
-                </SwitchItem>
+            <Show
+                when={
+                    window.legcord.platform === "win32" &&
+                    isMinWindowsVersion(10, 0, 22000) &&
+                    store.settings.transparency === "modern"
+                }
+            >
+                <DropdownItem
+                    value={settings.windowMaterial}
+                    onChange={(v) => setConfig("windowMaterial", v as Settings["windowMaterial"], true)}
+                    title={store.i18n["settings-material"]}
+                    note={store.i18n["settings-material-desc"]}
+                    link="https://github.com/Legcord/Legcord/wiki/Settings-%5Bwip%5D#legcord-theme"
+                    options={[
+                        { label: store.i18n["settings-material-mica"], value: "mica" },
+                        { label: store.i18n["settings-material-mica-alt"], value: "tabbed" },
+                        { label: store.i18n["settings-material-acrylic"], value: "acrylic" },
+                        { label: store.i18n["settings-material-none"], value: "none" },
+                    ]}
+                />
             </Show>
             <Show when={window.legcord.platform === "darwin"}>
                 <SwitchItem
@@ -118,14 +164,35 @@ export function SettingsPage() {
                 note={store.i18n["settings-trayIcon-desc"]}
                 options={[
                     { label: store.i18n["settings-trayIcon-dynamic"], value: "dynamic" },
-                    { label: store.i18n["settings-trayIcon-disabled"], value: "disabled" },
+                    {
+                        label: store.i18n["settings-trayIcon-disabled"],
+                        value: "disabled",
+                    },
                     { label: store.i18n["settings-trayIcon-normal"], value: "dsc-tray" },
-                    { label: store.i18n["settings-trayIcon-classic"], value: "clsc-dsc-tray" },
-                    { label: store.i18n["settings-trayIcon-colored-plug"], value: "ac_plug_colored" },
-                    { label: store.i18n["settings-trayIcon-white-plug"], value: "ac_white_plug" },
-                    { label: store.i18n["settings-trayIcon-white-plug-alt"], value: "ac_white_plug_hollow" },
-                    { label: store.i18n["settings-trayIcon-black-plug"], value: "ac_black_plug" },
-                    { label: store.i18n["settings-trayIcon-black-plug-alt"], value: "ac_black_plug_hollow" },
+                    {
+                        label: store.i18n["settings-trayIcon-classic"],
+                        value: "clsc-dsc-tray",
+                    },
+                    {
+                        label: store.i18n["settings-trayIcon-colored-plug"],
+                        value: "ac_plug_colored",
+                    },
+                    {
+                        label: store.i18n["settings-trayIcon-white-plug"],
+                        value: "ac_white_plug",
+                    },
+                    {
+                        label: store.i18n["settings-trayIcon-white-plug-alt"],
+                        value: "ac_white_plug_hollow",
+                    },
+                    {
+                        label: store.i18n["settings-trayIcon-black-plug"],
+                        value: "ac_black_plug",
+                    },
+                    {
+                        label: store.i18n["settings-trayIcon-black-plug-alt"],
+                        value: "ac_black_plug_hollow",
+                    },
                 ]}
             />
             <SwitchItem
@@ -240,9 +307,11 @@ export function SettingsPage() {
                 link="https://github.com/Legcord/Legcord/blob/dev/src/common/flags.ts"
                 options={[
                     { label: store.i18n["settings-prfmMode-dynamic"], value: "dynamic" },
-                    { label: store.i18n["settings-prfmMode-performance"], value: "performance" },
+                    {
+                        label: store.i18n["settings-prfmMode-performance"],
+                        value: "performance",
+                    },
                     { label: store.i18n["settings-prfmMode-battery"], value: "battery" },
-                    { label: store.i18n["settings-prfmMode-vaapi"], value: "vaapi" },
                     { label: store.i18n["settings-none"], value: "none" },
                 ]}
             />
@@ -399,7 +468,10 @@ export function SettingsPage() {
                 link="https://www.electronjs.org/docs/latest/api/session#sessetdisplaymediarequesthandlerhandler-opts"
                 options={[
                     { label: store.i18n["settings-audio-loopback"], value: "loopback" },
-                    { label: store.i18n["settings-audio-loopbackWithMute"], value: "loopbackWithMute" },
+                    {
+                        label: store.i18n["settings-audio-loopbackWithMute"],
+                        value: "loopbackWithMute",
+                    },
                 ]}
             />
             <SwitchItem
@@ -409,12 +481,21 @@ export function SettingsPage() {
             >
                 {store.i18n["settings-hardwareAcceleration"]}
             </SwitchItem>
+            <Show when={window.legcord.platform === "linux"}>
+                <SwitchItem
+                    note={store.i18n["settings-vaapi-desc"]}
+                    value={settings.vaapi}
+                    onChange={(e: boolean) => setConfig("vaapi", e, true)}
+                >
+                    {store.i18n["settings-vaapi"]}
+                </SwitchItem>
+            </Show>
             <SwitchItem
-                note={store.i18n["settings-noBundleUpdates-desc"]}
-                value={settings.noBundleUpdates}
-                onChange={(e: boolean) => setConfig("noBundleUpdates", e, true)}
+                note={store.i18n["settings-automaticClientUpdates-desc"]}
+                value={settings.automaticUpdates}
+                onChange={(e: boolean) => setConfig("automaticUpdates", e, true)}
             >
-                {store.i18n["settings-noBundleUpdates"]}
+                {store.i18n["settings-automaticClientUpdates"]}
             </SwitchItem>
             <SwitchItem
                 note={store.i18n["settings-disableHttpCache-desc"]}
@@ -429,6 +510,60 @@ export function SettingsPage() {
                 value={settings.additionalArguments}
                 onInput={(v: string) => setConfig("additionalArguments", v)}
             />
+            <Header class={classes.category} tag={HeaderTags.H5}>
+                {store.i18n["settings-noBundleUpdates"]}
+            </Header>
+            <SwitchItem
+                note={store.i18n["settings-noBundleUpdates-desc"]}
+                value={noBundleUpdates().includes("shelter")}
+                onChange={(e: boolean) => {
+                    const next = new Set(noBundleUpdates());
+                    if (e) next.add("shelter");
+                    else next.delete("shelter");
+                    setConfig("noBundleUpdates", Array.from(next) as Settings["noBundleUpdates"], true);
+                }}
+            >
+                {store.i18n["settings-mod-shelter"]}
+            </SwitchItem>
+            <Show when={settings.mods.includes("vencord")}>
+                <SwitchItem
+                    value={noBundleUpdates().includes("vencord")}
+                    onChange={(e: boolean) => {
+                        const next = new Set(noBundleUpdates());
+                        if (e) next.add("vencord");
+                        else next.delete("vencord");
+                        setConfig("noBundleUpdates", Array.from(next) as Settings["noBundleUpdates"], true);
+                    }}
+                >
+                    Vencord
+                </SwitchItem>
+            </Show>
+            <Show when={settings.mods.includes("equicord")}>
+                <SwitchItem
+                    value={noBundleUpdates().includes("equicord")}
+                    onChange={(e: boolean) => {
+                        const next = new Set(noBundleUpdates());
+                        if (e) next.add("equicord");
+                        else next.delete("equicord");
+                        setConfig("noBundleUpdates", Array.from(next) as Settings["noBundleUpdates"], true);
+                    }}
+                >
+                    Equicord
+                </SwitchItem>
+            </Show>
+            <Show when={settings.mods.includes("custom")}>
+                <SwitchItem
+                    value={noBundleUpdates().includes("custom")}
+                    onChange={(e: boolean) => {
+                        const next = new Set(noBundleUpdates());
+                        if (e) next.add("custom");
+                        else next.delete("custom");
+                        setConfig("noBundleUpdates", Array.from(next) as Settings["noBundleUpdates"], true);
+                    }}
+                >
+                    {store.i18n["settings-mod-custom"]}
+                </SwitchItem>
+            </Show>
             <Button size={ButtonSizes.MAX} onClick={window.legcord.settings.openCustomIconDialog}>
                 {store.i18n["settings-openCustomIconDialog"]}
             </Button>

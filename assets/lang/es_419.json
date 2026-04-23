@@ -286,5 +286,17 @@
     "contextMenu-searchGoogle": "Buscar con Google",
     "touchbar-servers": "Servidores",
     "splash-title": "Legcord",
-    "screenshare-venmicDisabled": "Venmic desactivado"
+    "screenshare-venmicDisabled": "Venmic desactivado",
+    "settings-quickCss": "CSS rápido",
+    "settings-quickCss-desc": "Edita rápidamente tu CSS en un sencillo editor de texto. Los cambios se aplican inmediatamente después de guardar el archivo.",
+    "keybind-pushToTalk": "Presionar para hablar",
+    "games-lastDetected": "Últimos juegos detectados",
+    "games-lastDetectedEmpty": "Aún no se han detectado juegos. Inicie un juego con presencia enriquecida para verlos aquí.",
+    "games-blacklist": "Lista negra",
+    "games-blacklisted": "Juegos incluidos en la lista negra",
+    "games-blacklistedEmpty": "No hay juegos en la lista negra.",
+    "games-removeFromBlacklist": "Eliminar",
+    "games-application": "Aplicación",
+    "settings-vaapi": "VAAPI",
+    "settings-vaapi-desc": "Utiliza VAAPI (aceleración por hardware) para la decodificación de vídeo en Linux. Esto reduce considerablemente el uso de la CPU durante el uso compartido de pantalla, pero puede causar problemas en algunos sistemas. Desactívalo si experimentas bloqueos o pantallas en negro durante el uso compartido de pantalla."
 }

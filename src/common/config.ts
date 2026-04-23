@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { platform } from "node:os";
 import { dirname, join } from "node:path";
 import { app, dialog } from "electron";
 import type { Settings } from "../@types/settings.js";
@@ -14,7 +15,7 @@ const defaults: Settings = {
     windowStyle: "default",
     channel: "stable",
     bounceOnPing: false,
-    legcordCSP: true,
+    csp: "none",
     minimizeToTray: true,
     processScanning: true,
     windowsLegacyScanning: false,
@@ -35,6 +36,7 @@ const defaults: Settings = {
     multiInstance: false,
     mods: ["vencord"],
     transparency: "none",
+    windowMaterial: "mica",
     spellcheck: true,
     hardwareAcceleration: true,
     performanceMode: "none",
@@ -52,24 +54,32 @@ const defaults: Settings = {
     tray: "dynamic",
     doneSetup: false,
     popoutPiP: false,
+    vaapi: platform() === "linux",
     spellcheckLanguage: ["en-US"],
     sleepInBackground: false,
-    noBundleUpdates: false,
+    noBundleUpdates: [],
+    automaticUpdates: false,
     additionalArguments: "",
     customIcon: join(import.meta.dirname, "../", "/assets/desktop.png"),
     smoothScroll: true,
     autoScroll: false,
     useSystemCssEditor: false,
     extendedPluginAbilities: false,
+    quickCss: true,
+    supportBannerDismissed: false,
 };
 
 const safeMode: Settings = {
     ...defaults,
     mods: [],
     windowStyle: "native",
+    csp: "vanilla",
     hardwareAcceleration: false,
     disableHttpCache: true,
+    vaapi: false,
+    additionalArguments: "",
     extendedPluginAbilities: false,
+    quickCss: false,
 };
 
 export function checkForDataFolder(): void {
@@ -219,6 +229,7 @@ export function checkIfConfigIsBroken(): void {
         writeFileSync(getWindowStateLocation(), "{}", "utf-8");
         console.log("Detected a corrupted window config");
     }
+    handleAutomaticUpdates(configCache!);
 }
 
 export function setup(): void {
@@ -230,4 +241,10 @@ export function setup(): void {
 
 export function setFirstRun(value: boolean): void {
     firstRun = value;
+}
+
+export function handleAutomaticUpdates(settings: Settings): void {
+    if (settings.automaticUpdates) {
+        require("../updater.js");
+    }
 }

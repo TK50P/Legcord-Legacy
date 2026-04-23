@@ -7,12 +7,24 @@ import isDev from "electron-is-dev";
 import type { Keybind } from "../@types/keybind.js";
 import type { Settings } from "../@types/settings.js";
 import type { ThemeManifest } from "../@types/themeManifest.js";
+import {
+    type BackupSavePayload,
+    applyBackupFromMap,
+    buildBackupZipBuffer,
+    readBackupZipToMap,
+} from "../common/backup.js";
+import {
+    blacklistGame as blacklistGameAdd,
+    unblacklistGame as blacklistGameRemove,
+    getBlacklist,
+} from "../common/blacklistGame.js";
 import { getConfig, getConfigLocation, setConfig, setConfigBulk } from "../common/config.js";
 import { addDetectable, getDetectables, removeDetectable } from "../common/detectables.js";
 import { getLang, getLangName, getRawLang, setLang } from "../common/lang.js";
-import { installTheme, setThemeEnabled, uninstallTheme } from "../common/themes.js";
+import { disableQuickCss, initQuickCss, installTheme, setThemeEnabled, uninstallTheme } from "../common/themes.js";
 import { getDisplayVersion, getVersion } from "../common/version.js";
 import { openCssEditor } from "../cssEditor/main.js";
+import { getAppliedFlags, handleRestart } from "../main.js";
 import { isPowerSavingEnabled, setPowerSaving } from "../power.js";
 import constPaths from "../shared/consts/paths.js";
 import { splashWindow } from "../splash/main.js";
@@ -79,6 +91,14 @@ export function registerIpc(passedWindow: BrowserWindow): void {
     });
 
     // theming
+    ipcMain.on("enableQuickCss", () => {
+        console.log("Enabling quick CSS");
+        initQuickCss(passedWindow);
+    });
+    ipcMain.on("disableQuickCss", () => {
+        console.log("Disabling quick CSS");
+        disableQuickCss(passedWindow);
+    });
     ipcMain.on("openQuickCss", () => {
         if (getConfig("useSystemCssEditor")) {
             void shell.openPath(quickCssPath);
@@ -101,8 +121,14 @@ export function registerIpc(passedWindow: BrowserWindow): void {
                 buttonLabel: getLang("dialog-importTheme-button"),
                 properties: ["openFile", "multiSelections"],
                 filters: [
-                    { name: getLang("dialog-importTheme-discordStyles"), extensions: ["scss", "css"] },
-                    { name: getLang("dialog-importTheme-allFiles"), extensions: ["*"] },
+                    {
+                        name: getLang("dialog-importTheme-discordStyles"),
+                        extensions: ["scss", "css"],
+                    },
+                    {
+                        name: getLang("dialog-importTheme-allFiles"),
+                        extensions: ["*"],
+                    },
                 ],
             })
             .then((result) => {
@@ -221,14 +247,31 @@ export function registerIpc(passedWindow: BrowserWindow): void {
         event.returnValue = getDisplayVersion();
     });
     ipcMain.on("restart", () => {
-        app.relaunch();
-        app.exit();
+        // workaround electron trying to relaunch from squashfs
+        handleRestart();
     });
     ipcMain.on("isDev", (event) => {
         event.returnValue = isDev;
     });
-    ipcMain.on("setConfig", (_event, key: keyof Settings, value: string) => {
+    ipcMain.on("dumpFlags", (event) => {
+        const flags = getAppliedFlags();
+        console.log(`=== Chrome Flags === ${JSON.stringify(flags)}`);
+        event.returnValue = flags;
+    });
+    ipcMain.on("setConfig", (event, key: keyof Settings, value: Settings[keyof Settings]) => {
         setConfig(key, value);
+        event.returnValue = undefined;
+    });
+    ipcMain.on("getRpcBlacklist", (event) => {
+        event.returnValue = getBlacklist();
+    });
+    ipcMain.on("blacklistGame", (event, name: string, id: number) => {
+        blacklistGameAdd(name, id);
+        event.returnValue = undefined;
+    });
+    ipcMain.on("unblacklistGame", (event, id: number) => {
+        blacklistGameRemove(id);
+        event.returnValue = undefined;
     });
     ipcMain.on("addKeybind", (_event, keybind: Keybind) => {
         const keybinds = getConfig("keybinds");
@@ -305,7 +348,12 @@ export function registerIpc(passedWindow: BrowserWindow): void {
         dialog
             .showOpenDialog({
                 properties: ["openFile"],
-                filters: [{ name: getLang("dialog-customIcon-filters"), extensions: ["ico", "png", "icns"] }],
+                filters: [
+                    {
+                        name: getLang("dialog-customIcon-filters"),
+                        extensions: ["ico", "png", "icns"],
+                    },
+                ],
             })
             .then((result) => {
                 if (result.canceled) return;
@@ -356,7 +404,10 @@ export function registerIpc(passedWindow: BrowserWindow): void {
                 writeFileSync(resolved, data, "utf-8");
                 return { ok: true };
             } catch (err) {
-                return { ok: false, error: err instanceof Error ? err.message : "UNKNOWN" };
+                return {
+                    ok: false,
+                    error: err instanceof Error ? err.message : "UNKNOWN",
+                };
             }
         },
     );
@@ -380,8 +431,78 @@ export function registerIpc(passedWindow: BrowserWindow): void {
                 const data = readFileSync(resolved, "utf-8");
                 return { ok: true, data };
             } catch (err) {
+                return {
+                    ok: false,
+                    error: err instanceof Error ? err.message : "UNKNOWN",
+                };
+            }
+        },
+    );
+
+    ipcMain.handle(
+        "backupSave",
+        async (_event, payloadStr: unknown): Promise<{ ok: true } | { ok: false; error: string }> => {
+            try {
+                if (typeof payloadStr !== "string") return { ok: false, error: "INVALID_ARGS" };
+                const payload = JSON.parse(payloadStr) as BackupSavePayload;
+                if (!payload.includes || typeof payload.clientMods !== "object") {
+                    return { ok: false, error: "INVALID_BACKUP" };
+                }
+                const zipBuf = buildBackupZipBuffer(payload, {
+                    userDataPath,
+                    themesPath,
+                    pluginsPath,
+                    pluginStoragePath,
+                    quickCssPath,
+                    getConfigLocation,
+                });
+                const result = await dialog.showSaveDialog({
+                    title: getLang("backup-dialogSave-title"),
+                    defaultPath: path.join(
+                        app.getPath("documents"),
+                        `legcord-backup-${new Date().toISOString().slice(0, 10)}.zip`,
+                    ),
+                    filters: [{ name: "ZIP", extensions: ["zip"] }],
+                });
+                if (result.canceled || !result.filePath) return { ok: false, error: "CANCELLED" };
+                let filePath = result.filePath;
+                if (!filePath.toLowerCase().endsWith(".zip")) filePath += ".zip";
+                writeFileSync(filePath, zipBuf);
+                return { ok: true };
+            } catch (err) {
+                console.error(err);
                 return { ok: false, error: err instanceof Error ? err.message : "UNKNOWN" };
             }
         },
     );
+
+    ipcMain.handle("backupRestore", async (): Promise<string> => {
+        try {
+            const result = await dialog.showOpenDialog({
+                title: getLang("backup-dialogOpen-title"),
+                properties: ["openFile"],
+                filters: [{ name: "ZIP", extensions: ["zip"] }],
+            });
+            if (result.canceled || !result.filePaths[0]) {
+                return JSON.stringify({ ok: false, error: "CANCELLED" });
+            }
+            const buf = readFileSync(result.filePaths[0]);
+            const map = readBackupZipToMap(buf);
+            const { clientMods } = applyBackupFromMap(map, {
+                userDataPath,
+                themesPath,
+                pluginsPath,
+                pluginStoragePath,
+                quickCssPath,
+                getConfigLocation,
+            });
+            return JSON.stringify({ ok: true, clientMods });
+        } catch (err) {
+            console.error(err);
+            return JSON.stringify({
+                ok: false,
+                error: err instanceof Error ? err.message : "UNKNOWN",
+            });
+        }
+    });
 }

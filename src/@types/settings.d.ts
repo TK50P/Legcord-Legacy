@@ -34,15 +34,16 @@ export interface Settings {
     windowStyle: "default" | "native" | "overlay" | "transparent" | "legacy" | "rebrand";
     channel: "stable" | "ptb" | "canary";
     transparency: "universal" | "modern" | "none";
+    windowMaterial: "mica" | "tabbed" | "acrylic" | "none";
     audio: AudioSettings;
-    legcordCSP: boolean;
+    csp: "vanilla" | "strict" | "none";
     minimizeToTray: boolean;
     multiInstance: boolean;
     spellcheck: boolean;
     mods: ValidMods[];
     mobileMode: boolean;
     skipSplash: boolean;
-    performanceMode: "battery" | "dynamic" | "performance" | "vaapi" | "smoothScreenshare" | "none";
+    performanceMode: "battery" | "dynamic" | "performance" | "smoothScreenshare" | "none";
     customJsBundle: RequestInfo | URL | string;
     customCssBundle: RequestInfo | URL | string;
     startMinimized: boolean;
@@ -52,6 +53,7 @@ export interface Settings {
     inviteWebsocket: boolean;
     disableAutogain: boolean;
     autoHideMenuBar: boolean;
+    vaapi: boolean;
     blockPowerSavingInVoiceChat: boolean;
     disableHttpCache: boolean;
     tray: ValidTrayIcons;
@@ -62,13 +64,16 @@ export interface Settings {
     popoutPiP: boolean;
     sleepInBackground: boolean;
     useSystemCssEditor: boolean;
+    quickCss: boolean;
     autoScroll: boolean;
     additionalArguments: string;
-    noBundleUpdates: boolean;
+    noBundleUpdates: ValidMods[];
+    automaticUpdates: boolean;
     overlayButtonColor: string;
     processScanning: boolean;
     windowsLegacyScanning: boolean;
     scanInterval: number;
     modCache?: Record<ValidMods, string>;
     extendedPluginAbilities: boolean;
+    supportBannerDismissed: boolean;
 }

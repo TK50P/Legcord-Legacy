@@ -33,9 +33,17 @@ async function getRef(repoData: RepoData) {
 
 async function downloadMod(mod: ValidMods) {
     console.log(`[Mod Loader]: Downloading ${mod}...`);
-    await fetchMod(`${mod}.js`, modData[mod].js);
+    const jsUrl = modData[mod].js;
+    if (!jsUrl || jsUrl === "DoNotChange" || !jsUrl.startsWith("http")) {
+        console.log(`[Mod Loader]: Skipping ${mod} - no valid URL configured`);
+        return;
+    }
+    await fetchMod(`${mod}.js`, jsUrl);
     if (modData[mod].css) {
-        await fetchMod(`${mod}.css`, modData[mod].css);
+        const cssUrl = modData[mod].css;
+        if (cssUrl?.startsWith("http")) {
+            await fetchMod(`${mod}.css`, cssUrl);
+        }
     }
 }
 
@@ -62,12 +70,23 @@ async function cacheCheck(mod: ValidMods) {
 }
 
 export async function fetchMods() {
-    if (getConfig("noBundleUpdates")) return;
     if (typeof getConfig("mods") === "string") {
         setConfig("mods", [getConfig("mods") as unknown as ValidMods]); // pre 3.3.2
     }
-    await cacheCheck("shelter");
+    const rawDisabledUpdates = getConfig("noBundleUpdates");
+    const disabledUpdates = Array.isArray(rawDisabledUpdates)
+        ? rawDisabledUpdates
+        : rawDisabledUpdates
+          ? ["shelter", "vencord", "equicord", "custom"]
+          : [];
+    if (!Array.isArray(rawDisabledUpdates)) {
+        setConfig("noBundleUpdates", disabledUpdates as ValidMods[]);
+    }
+    if (!disabledUpdates.includes("shelter")) {
+        await cacheCheck("shelter");
+    }
     getConfig("mods").forEach(async (mod) => {
+        if (disabledUpdates.includes(mod)) return;
         if (mod === "custom") {
             await downloadMod(mod);
         }

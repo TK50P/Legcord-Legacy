@@ -1,6 +1,5 @@
-import babel from "@rollup/plugin-babel";
+import solid from "@rolldown-plugin/solid";
 import esmShim from "@rollup/plugin-esm-shim";
-import json from "@rollup/plugin-json";
 import { defineConfig } from "rolldown";
 import copy from "rollup-plugin-copy";
 
@@ -28,7 +27,6 @@ export default defineConfig([
         ],
         plugins: [
             esmShim(),
-            json(),
             copy({
                 targets: [
                     { src: "src/**/**/*.html", dest: "ts-out/html/" },
@@ -47,8 +45,8 @@ export default defineConfig([
             format: "esm",
             sourcemap: true,
         },
-        external: [...electronExternals, "arrpc"],
-        plugins: [esmShim(), json()],
+        external: [...electronExternals, "arrpc", "node:worker_threads"],
+        plugins: [esmShim()],
     },
     {
         input: "src/discord/preload/preload.mts",
@@ -99,14 +97,7 @@ export default defineConfig([
             sourcemap: true,
         },
         platform: "browser",
-        external: electronExternals,
-        plugins: [
-            babel({
-                presets: ["solid", "@babel/preset-flow", "@babel/preset-typescript"],
-                babelHelpers: "inline",
-                exclude: "node_modules/**",
-                extensions: [".ts", ".tsx"],
-            }),
-        ],
+        external: [...electronExternals],
+        plugins: [solid()],
     },
 ]);

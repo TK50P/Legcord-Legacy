@@ -282,7 +282,7 @@ pnpm package
 
 ## Where can I translate this?
 
-- Translations are done using our [Weblate page](https://hosted.weblate.org/projects/Legcord/Legcord/).
+- Translations are done using our [Weblate page](https://hosted.weblate.org/projects/armcord/).
 
 # Credits
 

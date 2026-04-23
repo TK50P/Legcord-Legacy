@@ -3,8 +3,9 @@ import path from "node:path";
 import { type BrowserWindow, app } from "electron";
 import type { ThemeManifest } from "../@types/themeManifest.js";
 import { mainWindows } from "../discord/window.js";
+import { getConfig } from "./config.js";
 
-// Performance optimization: Cache theme manifests to avoid reading on every call
+// Performance optimization: Cache theme manifests to avoid reading on every calll
 const themeManifestCache = new Map<string, { manifest: ThemeManifest; mtime: number }>();
 let quickCssWatcher: fs.FSWatcher | null = null;
 
@@ -21,16 +22,12 @@ function parseBDManifest(content: string) {
         enabled: false,
     }; // Will be defined later
 
-    // FIXME - What the fuck is going on here
-    // biome-ignore lint/suspicious/noImplicitAnyLet: <explanation>
-    let match;
-    // biome-ignore lint/suspicious/noAssignInExpressions: <explanation>
-    while ((match = metaReg.exec(content)) !== null) {
-        const [_, key] = match;
-        let [value] = match;
+    let match: RegExpExecArray | null;
+    for (;;) {
+        match = metaReg.exec(content);
+        if (match === null) break;
+        const [, key, value] = match;
         if (key === "import") break;
-        value = value.replace(`@${key}`, "");
-        value = value.trim();
 
         console.log(key, value);
 
@@ -122,6 +119,7 @@ export function injectThemesMain(browserWindow: BrowserWindow): void {
         console.log("Created missing theme folder");
     }
     browserWindow.webContents.on("did-finish-load", () => {
+        if (getConfig("quickCss")) initQuickCss(browserWindow); // load quick CSS if enabled
         const files = fs.readdirSync(themesFolder);
         for (const file of files) {
             const themePath = path.join(themesFolder, file);
@@ -228,52 +226,60 @@ export async function installTheme(linkOrPath: string) {
 export function initQuickCss(browserWindow: BrowserWindow) {
     if (process.argv.includes("--safe-mode")) return;
     const quickCssPath = path.join(userDataPath, "/quickCss.css");
-    browserWindow.webContents.on("did-finish-load", () => {
-        if (!fs.existsSync(quickCssPath)) {
-            fs.writeFileSync(quickCssPath, "");
-        }
-        browserWindow.webContents.send("addTheme", "legcord-quick-css", fs.readFileSync(quickCssPath, "utf-8"));
-        console.log("[Theme Manager] Loaded Quick CSS");
 
-        // Performance optimization: Use fs.watch instead of fs.watchFile for better performance
-        // Clean up existing watcher if any
-        if (quickCssWatcher) {
-            quickCssWatcher.close();
-        }
+    if (!fs.existsSync(quickCssPath)) {
+        fs.writeFileSync(quickCssPath, "");
+    }
+    browserWindow.webContents.send("addTheme", "legcord-quick-css", fs.readFileSync(quickCssPath, "utf-8"));
+    console.log("[Theme Manager] Loaded Quick CSS");
 
-        // Performance optimization: Debounce file changes to avoid excessive updates
-        let updateTimeout: NodeJS.Timeout | null = null;
-        quickCssWatcher = fs.watch(quickCssPath, (eventType) => {
-            if (eventType === "change") {
-                // Debounce: wait 300ms before updating to batch rapid changes
-                if (updateTimeout) {
-                    clearTimeout(updateTimeout);
-                }
-                updateTimeout = setTimeout(() => {
-                    try {
-                        console.log("[Theme Manager] Quick CSS updated.");
-                        browserWindow.webContents.send("removeTheme", "legcord-quick-css");
-                        browserWindow.webContents.send(
-                            "addTheme",
-                            "legcord-quick-css",
-                            fs.readFileSync(quickCssPath, "utf-8"),
-                        );
-                    } catch (err) {
-                        console.error("[Theme Manager] Error updating Quick CSS:", err);
-                    }
-                }, 300);
-            }
-        });
+    // Performance optimization: Use fs.watch instead of fs.watchFile for better performance
+    // Clean up existing watcher if any
+    if (quickCssWatcher) {
+        quickCssWatcher.close();
+    }
 
-        // Clean up watcher when window is closed
-        browserWindow.on("closed", () => {
-            if (quickCssWatcher) {
-                quickCssWatcher.close();
-                quickCssWatcher = null;
-            }
+    // Performance optimization: Debounce file changes to avoid excessive updates
+    let updateTimeout: NodeJS.Timeout | null = null;
+    quickCssWatcher = fs.watch(quickCssPath, (eventType) => {
+        if (eventType === "change") {
+            // Debounce: wait 300ms before updating to batch rapid changes
             if (updateTimeout) {
                 clearTimeout(updateTimeout);
             }
-        });
+            updateTimeout = setTimeout(() => {
+                try {
+                    console.log("[Theme Manager] Quick CSS updated.");
+                    browserWindow.webContents.send("removeTheme", "legcord-quick-css");
+                    browserWindow.webContents.send(
+                        "addTheme",
+                        "legcord-quick-css",
+                        fs.readFileSync(quickCssPath, "utf-8"),
+                    );
+                } catch (err) {
+                    console.error("[Theme Manager] Error updating Quick CSS:", err);
+                }
+            }, 300);
+        }
     });
+
+    // Clean up watcher when window is closed
+    browserWindow.on("closed", () => {
+        if (quickCssWatcher) {
+            quickCssWatcher.close();
+            quickCssWatcher = null;
+        }
+        if (updateTimeout) {
+            clearTimeout(updateTimeout);
+        }
+    });
+}
+
+export function disableQuickCss(browserWindow: BrowserWindow) {
+    // Clean up existing watcher if any
+    if (quickCssWatcher) {
+        quickCssWatcher.close();
+        quickCssWatcher = null;
+    }
+    browserWindow.webContents.send("removeTheme", "legcord-quick-css");
 }
